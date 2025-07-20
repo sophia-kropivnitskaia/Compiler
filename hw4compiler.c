@@ -163,7 +163,7 @@ void scanTokens(FILE *input) {
     int lineNum = 1;
     int in_comment = 0;
 
-    while (fgets(buffer, sizeof(buffer), input) {
+    while (fgets(buffer, sizeof(buffer), input)) {
         int i = 0;
         while (buffer[i] != '\0') {
             char c = buffer[i];
