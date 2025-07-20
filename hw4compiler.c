@@ -45,8 +45,6 @@ const char* opnames[] = {
 typedef struct {
     int type;
     char lexeme[100];
-    int line;
-    int column;
 } Token;
 
 // Virtual machine instruction structure
@@ -92,36 +90,30 @@ const char symbols[] = {
 };
 
 const char* error_messages[] = {
-    "period expected",
-    "identifier must be followed by =",
-    "= must be followed by a number",
-    "const, var, procedure must be followed by identifier",
-    "semicolon or comma missing",
-    "incorrect symbol after procedure declaration",
-    "statement expected",
-    "incorrect symbol after statement part in block",
-    "assignment operator expected",
-    "call must be followed by an identifier",
-    "then expected",
-    "do expected",
-    "relational operator expected",
-    "right parenthesis missing",
-    "invalid factor",
-    "call of a constant or variable is meaningless",
-    "unmatched right parenthesis",
-    "constants must be integers",
-    "begin must be followed by end",
-    "undeclared identifier",
-    "assignment to constant or procedure not allowed"
+    "period expected", //0
+    "identifier must be followed by =",//1
+    "= must be followed by a number",//2
+    "const, var, procedure must be followed by identifier",//3
+    "semicolon or comma missing",//4
+    "incorrect symbol after procedure declaration",//5
+    "statement expected",//6
+    "incorrect symbol after statement part in block",//7
+    "assignment operator expected",//8
+    "call must be followed by an identifier",//9
+    "then expected",//10
+    "do expected",//11
+    "relational operator expected",//12
+    "right parenthesis missing",//13
+    "invalid factor",//14
+    "call of a constant or variable is meaningless",//15
+    "unmatched right parenthesis",//16
+    "constants must be integers",//17
+    "begin must be followed by end",//18
+    "undeclared identifier",//19
+    "assignment to constant or procedure not allowed"//20
 };
 
-void add_error(const char* msg) {
-    if (errorCount < 100) {
-        strcpy(errors[errorCount].message, msg);
-        errorCount++;
-    }
-    hasError = 1;
-}
+
 
 int isLetter(char c) {
     return isalpha(c);
@@ -160,7 +152,6 @@ int isReservedWord(char* id) {
 
 void scanTokens(FILE *input) {
     char buffer[MAX_LINE_LEN];
-    int lineNum = 1;
     int in_comment = 0;
 
     while (fgets(buffer, sizeof(buffer), input)) {
@@ -194,7 +185,8 @@ void scanTokens(FILE *input) {
                 }
                 id[j] = '\0';
                 if (strlen(id) > MAX_ID_LEN) {
-                    add_error("Identifier too long");
+                    printf("%s\t\tError: Identifier too long\n", id); 
+                    hasError = 1;
                 }
                 continue;
             }
@@ -206,38 +198,23 @@ void scanTokens(FILE *input) {
                     i++;
                 }
                 if (buffer[i] == '.') {
-                    add_error("Decimal numbers not allowed");
-                    while (isNumber(buffer[i]) || buffer[i] == '.') { i++; }
+                    while (isNumber(buffer[i])) { i++; }
                     continue;
                 }
                 num[j] = '\0';
                 if (strlen(num) > MAX_NUM_LEN) {
-                    add_error("This number is too large");
+                    printf("%s\t\tError: Number too long\n", num); 
+                    hasError = 1;
                 }
                 continue;
             }
 
-            switch (c) {
-                case '+': case '-': case '*': case '/': 
-                case '(': case ')': case '=': case ',': 
-                case '.': case ';': case '<': case '>':
-                    break;
-                case ':':
-                    if (buffer[i+1] == '=') { 
-                        i++; 
-                    } else {
-                        add_error("Invalid symbol ':'");
-                    }
-                    break;
-                default:
-                    if (!isspace(c)) {
-                        add_error("Invalid symbol");
-                    }
-                    break;
+            if (!strchr("+-*/()=,.;<>:", c)) {
+                printf("Error: Invalid symbol '%c'\n", c);
+                hasError = 1;
             }
             i++;
         }
-        lineNum++;
     }
 
     if (in_comment) {
@@ -246,7 +223,6 @@ void scanTokens(FILE *input) {
 
     if (!hasError) {
         rewind(input);
-        lineNum = 1;
         in_comment = 0;
         while (fgets(buffer, sizeof(buffer), input)) {
             int i = 0;
@@ -281,8 +257,7 @@ void scanTokens(FILE *input) {
                     int token = isReservedWord(id);
                     tokenList[tokenCount].type = token ? token : identsym;
                     strcpy(tokenList[tokenCount].lexeme, token ? "" : id);
-                    tokenList[tokenCount].line = lineNum;
-                    tokenList[tokenCount].column = i - j;
+
                     tokenCount++;
                     continue;
                 }
@@ -296,8 +271,6 @@ void scanTokens(FILE *input) {
                     num[j] = '\0';
                     tokenList[tokenCount].type = numbersym;
                     strcpy(tokenList[tokenCount].lexeme, num);
-                    tokenList[tokenCount].line = lineNum;
-                    tokenList[tokenCount].column = i - j;
                     tokenCount++;
                     continue;
                 }
@@ -330,13 +303,10 @@ void scanTokens(FILE *input) {
                 if (singleToken > 0) {
                     tokenList[tokenCount].type = singleToken;
                     tokenList[tokenCount].lexeme[0] = '\0';
-                    tokenList[tokenCount].line = lineNum;
-                    tokenList[tokenCount].column = i;
                     tokenCount++;
                 }
                 i++;
             }
-            lineNum++;
         }
     }
 }
