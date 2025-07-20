@@ -341,7 +341,7 @@ void emit(int op, int L, int M) {
 }
 
 int find_symbol(char* name) {
-    for (int i = sym_table_size-1; i >= 0; i--) {
+    for (int i = sym_table_size - 1; i >= 0; i--) {
         if (symbol_table[i].mark == 0 && strcmp(symbol_table[i].name, name) == 0) {
             return i;
         }
@@ -350,14 +350,16 @@ int find_symbol(char* name) {
 }
 
 void program() {
-    emit(JMP, 0, 0); // Will be fixed up after procedure declarations
-    
-    get_next_token();
+
     block();
     
-    if (currentToken->type != periodsym) {
-        error(0); // "period expected"
+    if (tokenList[tokenCount-1].type != periodsym) {
+        error(0);
     }
+    else {
+        get_next_token();
+    }
+
     
     // Mark all symbols at program end
     for (int i = 0; i < sym_table_size; i++) {
@@ -486,13 +488,6 @@ void procedure_declaration() {
             return;
         }
         
-        // Add procedure to symbol table
-        symbol_table[sym_table_size].kind = 3;
-        strcpy(symbol_table[sym_table_size].name, name);
-        symbol_table[sym_table_size].level = lex;
-        symbol_table[sym_table_size].addr = cx; // store current code index
-        symbol_table[sym_table_size].mark = 0;
-        sym_table_size++;
         
         get_next_token();
         
@@ -502,6 +497,14 @@ void procedure_declaration() {
         }
         
         get_next_token();
+
+           // Add procedure to symbol table
+        symbol_table[sym_table_size].kind = 3;
+        strcpy(symbol_table[sym_table_size].name, name);
+        symbol_table[sym_table_size].level = lex;
+        symbol_table[sym_table_size].addr = cx; // store current code index
+        symbol_table[sym_table_size].mark = 0;
+        sym_table_size++;
         
         // Process procedure block with increased lexical level
         lex++;
@@ -520,6 +523,7 @@ void procedure_declaration() {
 }
 
 void statement() {
+    
     if (currentToken->type == identsym) {
         // Assignment statement
         char name[MAX_ID_LEN + 1];
@@ -531,20 +535,25 @@ void statement() {
             return;
         }
         if (symbol_table[sym_idx].kind != 2) {
-            error(20); // "assignment to constant or procedure not allowed"
+            error(20); // "not a variable"
             return;
         }
         
         get_next_token();
+
         if (currentToken->type != becomessym) {
             error(8); // "assignment operator expected"
             return;
         }
         
         get_next_token();
+
         expression();
+
         emit(STO, symbol_table[sym_idx].level, symbol_table[sym_idx].addr);
+
     }
+
     else if (currentToken->type == callsym) {
         // Call statement
         get_next_token();
@@ -559,6 +568,8 @@ void statement() {
             error(19); // "undeclared identifier"
             return;
         }
+
+
         if (symbol_table[sym_idx].kind != 3) {
             error(15); // "call of a constant or variable is meaningless"
             return;
