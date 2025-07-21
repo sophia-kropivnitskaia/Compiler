@@ -27,12 +27,12 @@ typedef enum {
 } tokenType;
 
 // VM instructions
-#define LIT 1
+#define INC 1
 #define OPR 2
 #define LOD 3
 #define STO 4
 #define CAL 5
-#define INC 6
+#define LIT 6
 #define JMP 7
 #define JPC 8
 #define SYS 9
@@ -91,8 +91,8 @@ int hasError = 0;
 
 // Error messages (updated for HW4)
 const char* error_messages[] = {
-    "program must end with period",
-    "const, var, procedure must be followed by identifier",
+    "program must end with period", //0
+    "const, var, procedure must be followed by identifier",//1
     "symbol name has already been declared",
     "constants must be assigned with =",
     "constants must be assigned an integer value",
@@ -100,7 +100,6 @@ const char* error_messages[] = {
     "incorrect symbol after procedure declaration",
     "statement expected",
     "incorrect symbol after statement part in block",
-    "period expected",
     "semicolon between statements missing",
     "undeclared identifier",
     "assignment to constant or procedure is not allowed",
@@ -447,7 +446,7 @@ void program() {
     get_next_token();
     block(0);
     if (tokenList[tokenCount-1].type != periodsym) {
-        error(0);// program must end with period
+        error(0); // program must end with period
     }
 
     // Mark all symbols at program end
@@ -771,12 +770,12 @@ void condition() {
         expression();
         
         switch (relop) {
-            case eqlsym: emit(OPR, 0, 8); break;  // EQL
-            case neqsym: emit(OPR, 0, 9); break;  // NEQ
-            case lessym: emit(OPR, 0, 10); break; // LSS
-            case leqsym: emit(OPR, 0, 11); break; // LEQ
-            case gtrsym: emit(OPR, 0, 12); break; // GTR
-            case geqsym: emit(OPR, 0, 13); break; // GEQ
+            case eqlsym: emit(OPR, 0, 5); break;  // EQL
+            case neqsym: emit(OPR, 0, 6); break;  // NEQ
+            case lessym: emit(OPR, 0, 7); break; // LSS
+            case leqsym: emit(OPR, 0, 8); break; // LEQ
+            case gtrsym: emit(OPR, 0, 9); break; // GTR
+            case geqsym: emit(OPR, 0, 10); break; // GEQ
         }
     }
     else {
@@ -785,25 +784,25 @@ void condition() {
 }
 
 void expression() {
-    if (currentToken->type == plussym || currentToken->type == minussym) {
-        int addop = currentToken->type;
-        get_next_token();
-        term();
-        if (addop == minussym) {
-            emit(OPR, 0, 1); // NEG
-        }
-    } else {
-        term();
-    }
+    // if (currentToken->type == plussym || currentToken->type == minussym) {
+    //     int addop = currentToken->type;
+    //     get_next_token();
+    //     term();
+    //     if (addop == minussym) {
+    //         emit(OPR, 0, 1); // NEG
+    //     }
+    // } else {
+    //     term();
+    // }
 
     while (currentToken->type == plussym || currentToken->type == minussym) {
         int addop = currentToken->type;
         get_next_token();
         term();
         if (addop == plussym) {
-            emit(OPR, 0, 2); // ADD
+            emit(OPR, 0, 1); // ADD
         } else {
-            emit(OPR, 0, 3); // SUB
+            emit(OPR, 0, 2); // SUB
         }
     }
 }
@@ -815,8 +814,8 @@ void term() {
         get_next_token();
         factor();
         switch (mulop) {
-            case multsym: emit(OPR, 0, 4); break; // MUL
-            case slashsym: emit(OPR, 0, 5); break; // DIV
+            case multsym: emit(OPR, 0, 3); break; // MUL
+            case slashsym: emit(OPR, 0, 4); break; // DIV
             case modsym: emit(OPR, 0, 11); break; // MOD (new for HW4)
         }
     }
