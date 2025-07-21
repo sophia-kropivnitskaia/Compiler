@@ -441,7 +441,8 @@ int find_symbol(char* name, int level) {
 
 void program() {
     // First instruction should be JMP to skip variable allocation
-    emit(JMP, 0, 0); // Address will be updated later
+     emit(JMP, 0, 0);
+    int initialJumpPos = cx - 1; // Address will be updated later
 
     get_next_token();
     block(0);
@@ -453,6 +454,7 @@ void program() {
     for (int i = 0; i < sym_table_size; i++) {
         symbol_table[i].mark = 1;
     }
+    code[initialJumpPos].M = cx;
 
     emit(SYS, 0, 3); // HALT instruction
 }
@@ -461,10 +463,10 @@ void block(int level) {
     int tx0 = sym_table_size; // Save current symbol table position
     int cx0 = cx;             // Save current code position
     
-    // Update the JMP instruction to jump to current code position
-    if (level == 0) {
-        code[0].M = cx;
-    }
+    // // Update the JMP instruction to jump to current code position
+    // if (level == 0) {
+    //     code[0].M = cx;
+    // }
 
     const_declaration();
     int num_vars = var_declaration();
@@ -474,7 +476,14 @@ void block(int level) {
         procedure_declaration(level);
     }
     
-    emit(INC, 0, 3 + num_vars); // Allocate space for variables
+    // Modified allocation based on level
+    if (level == 0) {
+        // Main program - allocate space for globals + system words
+        emit(INC, 0, 3 + num_vars); 
+    } else {
+        // Procedure - allocate space for locals + control links
+        emit(INC, 0, num_vars);
+    }// Allocate space for variables
     
     statement();
     
@@ -552,7 +561,7 @@ int var_declaration() {
             strcpy(symbol_table[sym_table_size].name, name);
             symbol_table[sym_table_size].val = 0;
             symbol_table[sym_table_size].level = currentLevel;
-            symbol_table[sym_table_size].addr = num_vars + 2; // First var at address 3
+            symbol_table[sym_table_size].addr = num_vars + 3; // First var at address 3
             symbol_table[sym_table_size].mark = 0;
             sym_table_size++;
             
@@ -599,7 +608,12 @@ void procedure_declaration(int level) {
     
     // Process procedure block
     currentLevel++;
-    block(currentLevel);
+    
+    // Emit procedure prologue
+    
+    emit(INC, 0, 3);
+    block(currentLevel); // This will handle local variables
+    
     currentLevel--;
     
     emit(OPR, 0, 0); // Return from procedure
@@ -608,9 +622,6 @@ void procedure_declaration(int level) {
         error(5); // procedure must end with semicolon
     }
     get_next_token();
-    
-    // Update procedure address in symbol table
-    symbol_table[proc_index].addr = cx;
 }
 
 void statement() {
@@ -792,16 +803,18 @@ void expression() {
     //         emit(OPR, 0, 1); // NEG
     //     }
     // } else {
-    //     term();
+        
     // }
-
+    term();
     while (currentToken->type == plussym || currentToken->type == minussym) {
         int addop = currentToken->type;
         get_next_token();
-        term();
+    
         if (addop == plussym) {
+            term();
             emit(OPR, 0, 1); // ADD
         } else {
+            term();
             emit(OPR, 0, 2); // SUB
         }
     }
