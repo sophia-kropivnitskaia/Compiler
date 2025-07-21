@@ -446,7 +446,7 @@ void program() {
 
     get_next_token();
     block(0);
-    if (currentToken->type != periodsym) {
+    if (tokenList[tokenCount-1].type != periodsym) {
         error(0); // program must end with period
     }
 
@@ -785,24 +785,15 @@ void condition() {
 }
 
 void expression() {
-    if (currentToken->type == plussym || currentToken->type == minussym) {
-        int addop = currentToken->type;
-        get_next_token();
-        term();
-        if (addop == minussym) {
-            emit(OPR, 0, 1); // NEG
-        }
-    } else {
-        term();
-    }
-
     while (currentToken->type == plussym || currentToken->type == minussym) {
         int addop = currentToken->type;
-        get_next_token();
-        term();
         if (addop == plussym) {
+            get_next_token();
+            term();
             emit(OPR, 0, 2); // ADD
         } else {
+            get_next_token();
+            term();
             emit(OPR, 0, 3); // SUB
         }
     }
